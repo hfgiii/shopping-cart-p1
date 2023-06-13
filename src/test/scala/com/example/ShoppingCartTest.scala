@@ -1,9 +1,9 @@
 package com.example
 
-import com.example.ShoppingCart.ItemResponse
 import sttp.client3._
 import sttp.client3.testing.SttpBackendStub
-import sttp.model.{StatusCode, Uri}
+import sttp.model._
+import adt._
 
 object ShoppingCartTest extends ShoppingCartLike {
 
