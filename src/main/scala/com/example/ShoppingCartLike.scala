@@ -14,7 +14,6 @@ trait ShoppingCartLike {
   type ItemResponse = Response[Either[ResponseException[String, Error], Item]]
   type CartItemResponse = Response[Either[ResponseException[String, Error], CartItem]]
 
-
   private def firstToUpper(str: String): String =
     if (str.nonEmpty)
       str.replaceFirst(str.substring(0, 1), (str.substring(0, 1).toUpperCase))
@@ -22,18 +21,18 @@ trait ShoppingCartLike {
 
   def retrieveItem(uri: Uri): ItemResponse
 
-  def getItemDirectLR(titleUriLR: Either[String, Uri]): IO[ItemResponse] =
+  protected def getItemDirectLR(titleUriLR: Either[String, Uri]): IO[ItemResponse] =
     titleUriLR match {
       case Right(titleUri) => IO(retrieveItem(titleUri))
 
       case Left(key) => IO(Response(Right(Item(firstToUpper(key), 0d)), StatusCode.NotFound, s"URI for $key not found"))
     }
 
-  def getItemByRequest(itemReq: ItemRequest): IO[CartItemResponse] =
+  protected def getItemByRequest(itemReq: ItemRequest): IO[CartItemResponse] =
     for {
       titleURI <- IO(Either.fromOption(URIs.get(itemReq.title), itemReq.title))
       itemResponse <- getItemDirectLR(titleURI)
-      citemLR <- IO(itemResponse.body.map(cc => CartItem(itemReq.quantity, cc)))
+      citemLR <- IO(itemResponse.body.map(item => CartItem(itemReq.quantity, item)))
     } yield Response.ok(citemLR)
 
 
@@ -57,7 +56,7 @@ trait ShoppingCartLike {
     )
   }
 
-  def displayInvoiceForShoppingCart(itemRequests:ItemRequest*):IO[Unit] =
+  def generateInvoiceForShoppingCart(itemRequests:ItemRequest*):IO[Invoice] =
     for {
 
       cartItems <-
@@ -68,9 +67,10 @@ trait ShoppingCartLike {
       invoice <-
         genInvoice(ShoppingCart(cartItems.map(_.body.getOrElse(CartItem(0, Item("Bogus", 0d))))))
 
-      _ <- IO.println(invoice)
+    } yield invoice
 
-    } yield ()
+  def displayInvoiceForShoppingCart(itemRequests:ItemRequest*):IO[Unit] =
+    generateInvoiceForShoppingCart(itemRequests: _*).flatMap(invoice => IO.println(invoice))
 
 ///These following methods are only used in unit tests
   def getItemByTitle(title: String): IO[ItemResponse] =
