@@ -1,42 +1,28 @@
 package com.example
 
 import cats.effect.IO
-import cats.effect.unsafe.IORuntime
-import com.example.ShoppingCart.URIs
 import io.circe.Error
 import sttp.client3.{Response, ResponseException}
-import sttp.model.{StatusCode, Uri}
 import cats.syntax.all._
 import adt._
 
 trait ShoppingCartLike {
 
   type ItemResponse = Response[Either[ResponseException[String, Error], Item]]
-  type CartItemResponse = Response[Either[ResponseException[String, Error], CartItem]]
 
-  private def firstToUpper(str: String): String =
-    if (str.nonEmpty)
-      str.replaceFirst(str.substring(0, 1), (str.substring(0, 1).toUpperCase))
-    else str
+  def retrieveItem(uri: sttp.model.Uri): ItemResponse
 
-  def retrieveItem(uri: Uri): ItemResponse
+  def getUri(productName:String):IO[org.http4s.Uri]
 
-  protected def getItemDirectLR(titleUriLR: Either[String, Uri]): IO[ItemResponse] =
-    titleUriLR match {
-      case Right(titleUri) => IO(retrieveItem(titleUri))
+  def retrieveProduct(titleUri: org.http4s.Uri):IO[Item]
 
-      case Left(key) => IO(Response(Right(Item(firstToUpper(key), 0d)), StatusCode.NotFound, s"URI for $key not found"))
-    }
+  protected def getItem(itemReq: ItemRequest): IO[CartItem] =
+       for {
+         uri <- getUri(itemReq.title)
+         product <- retrieveProduct(uri)
+       } yield CartItem(quantity = itemReq.quantity, item = product)
 
-  protected def getItemByRequest(itemReq: ItemRequest): IO[CartItemResponse] =
-    for {
-      titleURI <- IO(Either.fromOption(URIs.get(itemReq.title), itemReq.title))
-      itemResponse <- getItemDirectLR(titleURI)
-      citemLR <- IO(itemResponse.body.map(item => CartItem(itemReq.quantity, item)))
-    } yield Response.ok(citemLR)
-
-
-  def genInvoice(shoppingCart: ShoppingCart): IO[Invoice] = {
+  def genInvoice(shoppingCart: ShoppingCart): IO[Invoice] = IO {
 
     def twoDecimalPointRoundedUp(value: Double): Double =
       BigDecimal(value).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
@@ -47,13 +33,12 @@ trait ShoppingCartLike {
 
     val tax = 0.125 * subTotal
 
-    IO(
+
       Invoice(shoppingCart = shoppingCart,
         subTotal = subTotal,
         tax = twoDecimalPointRoundedUp(tax),
         total = twoDecimalPointRoundedUp(tax + subTotal)
       )
-    )
   }
 
   def generateInvoiceForShoppingCart(itemRequests:ItemRequest*):IO[Invoice] =
@@ -62,41 +47,12 @@ trait ShoppingCartLike {
       cartItems <-
         itemRequests
           .toList
-          .traverse(req => getItemByRequest(req))
+          .parTraverse( req => getItem(req))
 
-      invoice <-
-        genInvoice(ShoppingCart(cartItems.map(_.body.getOrElse(CartItem(0, Item("Bogus", 0d))))))
+      invoice <- genInvoice(ShoppingCart(cartItems))
 
     } yield invoice
 
-  def displayInvoiceForShoppingCart(itemRequests:ItemRequest*):IO[Unit] =
+  def  displayInvoiceForShoppingCart(itemRequests:ItemRequest*):IO[Unit] =
     generateInvoiceForShoppingCart(itemRequests: _*).flatMap(invoice => IO.println(invoice))
-
-///These following methods are only used in unit tests
-  def getItemByTitle(title: String): IO[ItemResponse] =
-    for {
-      titleURI <- IO(Either.fromOption(URIs.get(title), title))
-      item <- getItemDirectLR(titleURI)
-    } yield item
-
-  def runItem(itemIO: IO[ItemResponse])(implicit runtime: IORuntime): Either[ResponseException[String, Error], Item] =
-    itemIO.unsafeRunSync().body
-
-  def getShoppingCart(itemRequests: ItemRequest*)(implicit runtime: IORuntime) = {
-    val items =
-      itemRequests
-        .map(req => (req.quantity, (getItemByTitle _).andThen(runItem)(req.title)))
-        .foldRight(List.empty[CartItem]) { (respItem, titles) =>
-          val (quantity, eItem) = respItem
-          eItem match {
-            case Right(item) =>
-              CartItem(quantity, item) :: titles
-            case Left(_) => titles
-          }
-        }
-
-
-    ShoppingCart(items)
-  }
-///////////////////////////////////////////////
 }

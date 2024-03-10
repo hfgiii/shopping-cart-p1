@@ -1,7 +1,7 @@
 ThisBuild / organization := "com.example"
 ThisBuild / scalaVersion := "2.13.5"
 
-val http4sVersion = "1.0.0-M39"
+val http4sVersion = "0.23.26"
 val sttpVersion = "3.8.15"
 
 lazy val root = (project in file(".")).settings(
@@ -20,6 +20,9 @@ lazy val root = (project in file(".")).settings(
     // sttp
     "com.softwaremill.sttp.client3" %% "core" % sttpVersion,
     "com.softwaremill.sttp.client3" %% "circe" % sttpVersion,
+    // http4s
+    "org.http4s" %% "http4s-ember-client" % http4sVersion,
+    "org.http4s" %% "http4s-circe" % http4sVersion,
     // circe
     "io.circe" %% "circe-generic" % "0.14.1",
     // test
