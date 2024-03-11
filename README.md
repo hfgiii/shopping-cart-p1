@@ -6,7 +6,7 @@
 ## Assignment Details
 We will be using a simple shopping cart, similar to what you would see on any e-commerce website, as the domain for this problem.
 
-We respect your time and understand that asking you to give up an hour or so of your personal time for the interview process is a big ask. However, we want to make the process as simple and stress-free as possible, by allowing you to complete the first stage of the process in the comfort of your own home. We will also be using your submission in further stages of the process should you be successful.
+We  respect your time and understand that asking you to give up an hour or so of your personal time for the interview process is a big ask. However, we want to make the process as simple and stress-free as possible, by allowing you to complete the first stage of the process in the comfort of your own home. We will also be using your submission in further stages of the process should you be successful.
 
 ## What we are looking for
 **Test Coverage:** The solution should be developed “test-first”, should have good unit tests, and common paths should be covered. Your tests should also be

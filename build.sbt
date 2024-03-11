@@ -28,8 +28,6 @@ lazy val root = (project in file(".")).settings(
     // test
     "org.scalatest" %% "scalatest" % "3.2.16" % "test",
     "org.scalamock" %% "scalamock" % "5.2.0" % "test",
-    "org.scalatestplus" %% "scalacheck-1-17" % "3.2.16.0" % "test",
-    // scala fmt
-    "org.scalameta" % "sbt-scalafmt_2.12_1.0" % "2.4.6"
+    "org.scalatestplus" %% "scalacheck-1-17" % "3.2.16.0" % "test"
   )
 )

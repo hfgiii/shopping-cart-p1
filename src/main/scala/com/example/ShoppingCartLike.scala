@@ -2,22 +2,13 @@ package com.example
 
 import cats.effect.IO
 import cats.syntax.all._
-import org.http4s.Uri
 import adt._
 
 trait ShoppingCartLike {
 
-  def getUri(productName: String): IO[Uri]
+  def getItem(itemReq: ItemRequest): IO[CartItem]
 
-  def retrieveProduct(titleUri: Uri): IO[Item]
-
-  protected def getItem(itemReq: ItemRequest): IO[CartItem] =
-    for {
-      uri <- getUri(itemReq.title)
-      product <- retrieveProduct(uri)
-    } yield CartItem(quantity = itemReq.quantity, item = product)
-
-  def genInvoice(shoppingCart: ShoppingCart): IO[Invoice] = IO {
+  protected def genInvoice(shoppingCart: ShoppingCartModel): IO[Invoice] = IO {
 
     def twoDecimalPointRoundedUp(value: Double): Double =
       BigDecimal(value).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
@@ -36,19 +27,21 @@ trait ShoppingCartLike {
     )
   }
 
-  def generateInvoiceForShoppingCart(itemRequests: ItemRequest*): IO[Invoice] =
+  protected def generateInvoiceForShoppingCartWithItems(
+      itemRequests: ItemRequest*
+  ): IO[Invoice] =
     for {
 
       cartItems <-
         itemRequests.toList
           .parTraverse(req => getItem(req))
 
-      invoice <- genInvoice(ShoppingCart(cartItems))
+      invoice <- genInvoice(ShoppingCartModel(cartItems))
 
     } yield invoice
 
   def displayInvoiceForShoppingCart(itemRequests: ItemRequest*): IO[Unit] =
-    generateInvoiceForShoppingCart(itemRequests: _*).flatMap(invoice =>
+    generateInvoiceForShoppingCartWithItems(itemRequests: _*).flatMap(invoice =>
       IO.println(invoice)
     )
 }

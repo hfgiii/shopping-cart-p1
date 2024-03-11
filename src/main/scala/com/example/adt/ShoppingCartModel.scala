@@ -1,6 +1,6 @@
 package com.example.adt
 
-final case class ShoppingCart(cartItems: List[CartItem]) {
+final case class ShoppingCartModel(cartItems: List[CartItem]) {
   override def toString = {
     s"""
        | ${cartItems
@@ -19,7 +19,7 @@ final case class ItemRequest(quantity: Int, title: String)
 final case class CartItem(quantity: Int, item: Item)
 
 final case class Invoice(
-    shoppingCart: ShoppingCart,
+    shoppingCart: ShoppingCartModel,
     subTotal: Double,
     tax: Double,
     total: Double
